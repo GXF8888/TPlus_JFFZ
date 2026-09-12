@@ -84,7 +84,8 @@ class LoginActivity : AppCompatActivity() {
 
                 if (response.isSuccessful) {
                     val body = response.body()
-                    if (body?.success == true || body?.serverMessage?.contains("成功") == true) {
+                    val serverMsg = body?.serverMessage ?: ""
+                    if (body?.success == true || serverMsg.contains("成功") || serverMsg == "nologin") {
                         saveCredentials(userCode)
                         Toast.makeText(this@LoginActivity, "登录成功", Toast.LENGTH_SHORT).show()
                         startActivity(Intent(this@LoginActivity, IndexActivity::class.java))
