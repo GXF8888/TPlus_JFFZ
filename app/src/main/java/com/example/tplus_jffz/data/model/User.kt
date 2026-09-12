@@ -14,5 +14,6 @@ data class BaseResponse(
     val Message: String? = null,
     val ResultSet: List<Map<String, String>>? = null,
     val ResultSet2: List<Map<String, String>>? = null,
-    val OrderCodeArray: String? = null
+    val OrderCodeArray: String? = null,
+    val rawJson: String = ""
 )

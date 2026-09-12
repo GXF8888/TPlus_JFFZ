@@ -199,7 +199,7 @@ class RDRecordActivity : AppCompatActivity() {
                 }
                 lifecycleScope.launch {
                     val params = hashMapOf(
-                        "OrderBarArray" to orderBarArray,
+                        "OrderCodeArray" to orderBarArray,
                         "VoucherCode" to (wlItem["VoucherCode"] ?: ""),
                         "mxid" to (wlItem["mxid"] ?: ""),
                         "WhId" to (resultSet["WhId"] ?: ""),

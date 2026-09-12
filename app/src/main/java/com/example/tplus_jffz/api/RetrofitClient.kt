@@ -31,7 +31,6 @@ object RetrofitClient {
             retrofit = Retrofit.Builder()
                 .baseUrl(baseUrl)
                 .client(client)
-                .addConverterFactory(GsonConverterFactory.create())
                 .build()
         }
         return retrofit!!.create(TPlusApi::class.java)
