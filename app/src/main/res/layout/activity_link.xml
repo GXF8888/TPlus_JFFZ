@@ -41,6 +41,25 @@
             android:imeOptions="actionDone" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/til_database_name"
+        style="@style/Widget.TPlusJFFZ.InputField"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_medium"
+        android:hint="@string/hint_database_name"
+        app:layout_constraintTop_toBottomOf="@id/til_server_url"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_database_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:imeOptions="actionDone" />
+    </com.google.android.material.textfield.TextInputLayout>
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_test_connection"
         style="@style/Widget.TPlusJFFZ.Button.Secondary"
@@ -48,7 +67,7 @@
         android:layout_height="@dimen/button_height"
         android:text="@string/btn_test_connection"
         android:layout_marginTop="@dimen/spacing_large"
-        app:layout_constraintTop_toBottomOf="@id/til_server_url"
+        app:layout_constraintTop_toBottomOf="@id/til_database_name"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 

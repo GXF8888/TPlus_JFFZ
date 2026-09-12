@@ -1,5 +1,7 @@
 package com.example.tplus_jffz.data.model
 
+import com.google.gson.annotations.SerializedName
+
 data class User(
     val userId: String,
     val userName: String,
@@ -11,12 +13,17 @@ data class User(
 data class LoginRequest(
     val userCode: String,
     val password: String,
-    val accountId: String? = null
+    val accountId: String? = null,
+    val database: String? = null,
+    val dbName: String? = null,
+    val accId: String? = null
 )
 
 data class LoginResponse(
     val success: Boolean = false,
     val message: String? = null,
+    @SerializedName("Message")
+    val serverMessage: String? = null,
     val user: User? = null
 )
 

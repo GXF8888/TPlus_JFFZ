@@ -12,6 +12,7 @@ object RetrofitClient {
 
     private const val PREFS_NAME = "tplus_prefs"
     private const val KEY_BASE_URL = "base_url"
+    private const val KEY_DATABASE = "database_name"
     private const val DEFAULT_URL = "http://192.168.1.100:8080"
 
     private var retrofit: Retrofit? = null
@@ -38,6 +39,16 @@ object RetrofitClient {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString(KEY_BASE_URL, url).apply()
         resetApi()
+    }
+
+    fun getDatabaseName(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_DATABASE, null)
+    }
+
+    fun saveDatabaseName(context: Context, database: String) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_DATABASE, database).apply()
     }
 
     private fun createRetrofit(context: Context): Retrofit {

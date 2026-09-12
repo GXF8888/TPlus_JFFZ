@@ -24,6 +24,10 @@ class LinkActivity : AppCompatActivity() {
         val savedUrl = RetrofitClient.getBaseUrl(this)
         binding.etServerUrl.setText(savedUrl)
 
+        // Load saved database name
+        val savedDb = RetrofitClient.getDatabaseName(this)
+        binding.etDatabaseName.setText(savedDb)
+
         binding.btnTestConnection.setOnClickListener { testConnection() }
         binding.btnSave.setOnClickListener { saveConfiguration() }
     }
@@ -65,7 +69,14 @@ class LinkActivity : AppCompatActivity() {
             return
         }
 
+        val database = binding.etDatabaseName.text.toString().trim()
+        if (database.isEmpty()) {
+            binding.tilDatabaseName.error = "请输入数据库账套"
+            return
+        }
+
         RetrofitClient.saveBaseUrl(this, url)
+        RetrofitClient.saveDatabaseName(this, database)
         Toast.makeText(this, "配置已保存", Toast.LENGTH_SHORT).show()
         finish()
     }

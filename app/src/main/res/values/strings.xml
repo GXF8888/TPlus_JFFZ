@@ -13,6 +13,7 @@
     <!-- Link -->
     <string name="link_title">服务器配置</string>
     <string name="hint_server_url">服务器地址 (如 http://192.168.1.100:8080)</string>
+    <string name="hint_database_name">数据库账套 (如 UFTData325084_0000008)</string>
     <string name="btn_test_connection">测试连接</string>
     <string name="btn_save">保存</string>
 

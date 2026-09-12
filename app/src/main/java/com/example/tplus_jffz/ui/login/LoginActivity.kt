@@ -64,7 +64,18 @@ class LoginActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val api = RetrofitClient.getApi(this@LoginActivity)
-                val request = LoginRequest(userCode = userCode, password = password)
+                val database = RetrofitClient.getDatabaseName(this@LoginActivity)
+                if (database.isNullOrEmpty()) {
+                    Toast.makeText(this@LoginActivity, "请先在服务器设置中填写数据库账套", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                val request = LoginRequest(
+                    userCode = userCode,
+                    password = password,
+                    database = database,
+                    dbName = database,
+                    accId = database
+                )
                 val response = api.login(request)
 
                 if (response.isSuccessful && response.body()?.success == true) {
@@ -73,9 +84,13 @@ class LoginActivity : AppCompatActivity() {
                     startActivity(Intent(this@LoginActivity, IndexActivity::class.java))
                     finish()
                 } else {
+                    val body = response.body()
+                    val errorMsg = body?.message
+                        ?: body?.serverMessage
+                        ?: if (response.isSuccessful) "登录失败" else "服务器返回错误 (HTTP ${response.code()})"
                     Toast.makeText(
                         this@LoginActivity,
-                        response.body()?.message ?: "登录失败",
+                        errorMsg,
                         Toast.LENGTH_LONG
                     ).show()
                 }
