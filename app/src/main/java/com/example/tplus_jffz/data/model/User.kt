@@ -11,12 +11,26 @@ data class User(
 )
 
 data class LoginRequest(
+    @SerializedName("UserCode")
     val userCode: String,
+
+    @SerializedName("UserPwd")
     val password: String,
-    val accountId: String? = null,
-    val database: String? = null,
-    val dbName: String? = null,
-    val accId: String? = null
+
+    @SerializedName("DBCode")
+    val DBCode: String? = null,
+
+    @SerializedName("DBName")
+    val DBName: String? = null,
+
+    @SerializedName("DBUser")
+    val DBUser: String? = null,
+
+    @SerializedName("DBPwd")
+    val DBPwd: String? = null,
+
+    @SerializedName("MUTEX")
+    val MUTEX: String? = null
 )
 
 data class LoginResponse(

@@ -28,6 +28,12 @@ class LinkActivity : AppCompatActivity() {
         val savedDb = RetrofitClient.getDatabaseName(this)
         binding.etDatabaseName.setText(savedDb)
 
+        // Load saved database credentials
+        val savedDbUser = RetrofitClient.getDatabaseUser(this)
+        val savedDbPassword = RetrofitClient.getDatabasePassword(this)
+        binding.etDbUser.setText(savedDbUser ?: "tplusdbadmin")
+        binding.etDbPassword.setText(savedDbPassword ?: "tplus_12345")
+
         binding.btnTestConnection.setOnClickListener { testConnection() }
         binding.btnSave.setOnClickListener { saveConfiguration() }
     }
@@ -75,8 +81,13 @@ class LinkActivity : AppCompatActivity() {
             return
         }
 
+        val dbUser = binding.etDbUser.text.toString().trim()
+        val dbPassword = binding.etDbPassword.text.toString().trim()
+
         RetrofitClient.saveBaseUrl(this, url)
         RetrofitClient.saveDatabaseName(this, database)
+        RetrofitClient.saveDatabaseUser(this, dbUser)
+        RetrofitClient.saveDatabasePassword(this, dbPassword)
         Toast.makeText(this, "配置已保存", Toast.LENGTH_SHORT).show()
         finish()
     }

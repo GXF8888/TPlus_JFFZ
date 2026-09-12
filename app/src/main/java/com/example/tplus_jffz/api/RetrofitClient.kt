@@ -13,7 +13,9 @@ object RetrofitClient {
     private const val PREFS_NAME = "tplus_prefs"
     private const val KEY_BASE_URL = "base_url"
     private const val KEY_DATABASE = "database_name"
-    private const val DEFAULT_URL = "http://192.168.1.100:8080"
+    private const val KEY_DB_USER = "db_user"
+    private const val KEY_DB_PASSWORD = "db_password"
+    private const val DEFAULT_URL = "http://192.168.1.202:8083"
 
     private var retrofit: Retrofit? = null
     private var api: TPlusApi? = null
@@ -49,6 +51,26 @@ object RetrofitClient {
     fun saveDatabaseName(context: Context, database: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putString(KEY_DATABASE, database).apply()
+    }
+
+    fun getDatabaseUser(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_DB_USER, null)
+    }
+
+    fun saveDatabaseUser(context: Context, user: String) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_DB_USER, user).apply()
+    }
+
+    fun getDatabasePassword(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_DB_PASSWORD, null)
+    }
+
+    fun saveDatabasePassword(context: Context, password: String) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_DB_PASSWORD, password).apply()
     }
 
     private fun createRetrofit(context: Context): Retrofit {

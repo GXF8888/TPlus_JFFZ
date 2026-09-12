@@ -69,28 +69,40 @@ class LoginActivity : AppCompatActivity() {
                     Toast.makeText(this@LoginActivity, "请先在服务器设置中填写数据库账套", Toast.LENGTH_LONG).show()
                     return@launch
                 }
+                val dbUser = RetrofitClient.getDatabaseUser(this@LoginActivity)
+                val dbPassword = RetrofitClient.getDatabasePassword(this@LoginActivity)
                 val request = LoginRequest(
                     userCode = userCode,
                     password = password,
-                    database = database,
-                    dbName = database,
-                    accId = database
+                    DBCode = database,
+                    DBName = database,
+                    DBUser = dbUser,
+                    DBPwd = dbPassword,
+                    MUTEX = "TPlus"
                 )
                 val response = api.login(request)
 
-                if (response.isSuccessful && response.body()?.success == true) {
-                    saveCredentials(userCode)
-                    Toast.makeText(this@LoginActivity, "登录成功", Toast.LENGTH_SHORT).show()
-                    startActivity(Intent(this@LoginActivity, IndexActivity::class.java))
-                    finish()
-                } else {
+                if (response.isSuccessful) {
                     val body = response.body()
-                    val errorMsg = body?.message
-                        ?: body?.serverMessage
-                        ?: if (response.isSuccessful) "登录失败" else "服务器返回错误 (HTTP ${response.code()})"
+                    if (body?.success == true || body?.serverMessage?.contains("成功") == true) {
+                        saveCredentials(userCode)
+                        Toast.makeText(this@LoginActivity, "登录成功", Toast.LENGTH_SHORT).show()
+                        startActivity(Intent(this@LoginActivity, IndexActivity::class.java))
+                        finish()
+                    } else {
+                        val errorMsg = body?.message
+                            ?: body?.serverMessage
+                            ?: "登录失败"
+                        Toast.makeText(
+                            this@LoginActivity,
+                            errorMsg,
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                } else {
                     Toast.makeText(
                         this@LoginActivity,
-                        errorMsg,
+                        "服务器返回错误 (HTTP ${response.code()})",
                         Toast.LENGTH_LONG
                     ).show()
                 }
