@@ -74,7 +74,7 @@ class LoginActivity : AppCompatActivity() {
                 val request = LoginRequest(
                     userCode = userCode,
                     password = password,
-                    DBCode = database,
+                    DBCode = dbUser ?: "tplusdbadmin",
                     DBName = database,
                     DBUser = dbUser,
                     DBPwd = dbPassword,
