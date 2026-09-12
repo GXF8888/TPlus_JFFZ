@@ -1,179 +1,491 @@
 package com.example.tplus_jffz.ui.saledelivery
 
+import android.app.AlertDialog
+import android.app.ProgressDialog
 import android.content.Intent
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
+import android.widget.BaseAdapter
+import android.widget.ListView
+import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.tplus_jffz.R
-import com.example.tplus_jffz.api.RetrofitClient
-import com.example.tplus_jffz.data.model.SaleOrderDetail
-import com.example.tplus_jffz.data.model.SaleOrderRequest
+import com.example.tplus_jffz.data.model.AppConfig
 import com.example.tplus_jffz.databinding.ActivitySaleDeliveryBinding
-import com.example.tplus_jffz.ui.scan.ScanActivity
-import com.example.tplus_jffz.utils.BarcodeMaterialHelper
+import com.example.tplus_jffz.ui.login.LoginActivity
+import com.example.tplus_jffz.utils.HttpService
+import com.example.tplus_jffz.utils.SoundManager
 import kotlinx.coroutines.launch
 
 class SaleDeliveryActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivitySaleDeliveryBinding
-    private val details = mutableListOf<SaleOrderDetail>()
-    private lateinit var adapter: SaleDetailAdapter
-
-    companion object {
-        const val REQUEST_SCAN = 2001
-    }
+    private var orderCodeArray = ""
+    private val listYL = mutableListOf<Map<String, String>>()
+    private val listWL = mutableListOf<Map<String, String>>()
+    private val listWLYC = mutableListOf<Map<String, String>>()
+    private var isTab1 = true // true=已录明细, false=未录明细
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySaleDeliveryBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        SoundManager.init(this)
 
-        setupRecyclerView()
-        setupListeners()
-    }
-
-    private fun setupRecyclerView() {
-        adapter = SaleDetailAdapter(details) { position ->
-            deleteDetail(position)
+        binding.tab1.setOnClickListener { switchTab(true) }
+        binding.tab2.setOnClickListener { switchTab(false) }
+        
+        binding.etOrderBar.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_UP) {
+                getOrder(binding.etOrderBar.text.toString())
+                true
+            } else false
         }
-        binding.recyclerDetails.layoutManager = LinearLayoutManager(this)
-        binding.recyclerDetails.adapter = adapter
-    }
-
-    private fun setupListeners() {
-        binding.btnScan.setOnClickListener { launchScanner() }
-        binding.fabAddDetail.setOnClickListener { launchScanner() }
-        binding.btnSave.setOnClickListener { saveOrder(false) }
-        binding.btnSubmit.setOnClickListener { saveOrder(true) }
-    }
-
-    private fun launchScanner() {
-        val intent = ScanActivity.createIntent(this)
-        startActivityForResult(intent, REQUEST_SCAN)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_SCAN && resultCode == RESULT_OK) {
-            val barcode = data?.getStringExtra(ScanActivity.EXTRA_BARCODE) ?: return
-            addDetailFromBarcode(barcode)
+        
+        binding.btnSearchOrder.setOnClickListener {
+            getOrder(binding.etOrderBar.text.toString())
         }
+        
+        binding.etInvBar.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_UP) {
+                getInventory(binding.etInvBar.text.toString())
+                true
+            } else false
+        }
+        
+        binding.btnSearchInv.setOnClickListener {
+            getInventory(binding.etInvBar.text.toString())
+        }
+        
+        binding.btnUpload.setOnClickListener { upload() }
+        
+        binding.listView.adapter = WLAdapter()
+        switchTab(true)
     }
 
-    private fun addDetailFromBarcode(barcode: String) {
-        lifecycleScope.launch {
-            binding.progressBar.visibility = View.VISIBLE
-            val result = BarcodeMaterialHelper.queryMaterialByBarcode(this@SaleDeliveryActivity, barcode)
-            binding.progressBar.visibility = View.GONE
-
-            result.onSuccess { material ->
-                val detail = SaleOrderDetail(
-                    materialCode = material.code,
-                    materialName = material.name,
-                    specification = material.specification,
-                    unit = material.unit,
-                    qty = 1.0,
-                    price = material.price,
-                    amount = material.price
-                )
-                details.add(detail)
-                adapter.notifyItemInserted(details.size - 1)
-                updateTotals()
-                Toast.makeText(this@SaleDeliveryActivity, "已添加: ${material.name}", Toast.LENGTH_SHORT).show()
-            }.onFailure { error ->
-                // Fallback: add with barcode only if server query fails
-                val detail = SaleOrderDetail(
-                    materialCode = barcode,
-                    materialName = "物料 ($barcode)",
-                    qty = 1.0,
-                    price = 0.0,
-                    amount = 0.0
-                )
-                details.add(detail)
-                adapter.notifyItemInserted(details.size - 1)
-                updateTotals()
-                Toast.makeText(this@SaleDeliveryActivity, "${error.message}，已添加条码", Toast.LENGTH_SHORT).show()
-            }
+    private fun switchTab(tab1: Boolean) {
+        isTab1 = tab1
+        if (tab1) {
+            binding.tab1.setBackgroundColor(getColor(R.color.tab_selected))
+            binding.tab2.setBackgroundColor(getColor(R.color.tab_unselected))
+            binding.listView.adapter = YLAdapter()
+            refreshYL()
+        } else {
+            binding.tab1.setBackgroundColor(getColor(R.color.tab_unselected))
+            binding.tab2.setBackgroundColor(getColor(R.color.tab_selected))
+            binding.listView.adapter = WLAdapter()
+            refreshWL()
         }
     }
 
-    private fun deleteDetail(position: Int) {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.confirm_delete)
-            .setPositiveButton(R.string.yes) { _, _ ->
-                details.removeAt(position)
-                adapter.notifyItemRemoved(position)
-                updateTotals()
-            }
-            .setNegativeButton(R.string.no, null)
-            .show()
-    }
-
-    private fun updateTotals() {
-        val totalQty = details.sumOf { it.qty }
-        val totalAmount = details.sumOf { it.amount }
-        binding.tvTotal.text = getString(
-            R.string.label_total_qty, totalQty
-        ) + " / " + getString(R.string.label_total_amount, totalAmount)
-    }
-
-    private fun saveOrder(submit: Boolean) {
-        val customer = binding.etCustomer.text.toString().trim()
-        val warehouse = binding.etWarehouse.text.toString().trim()
-
-        if (details.isEmpty()) {
-            Toast.makeText(this, "请至少添加一条明细", Toast.LENGTH_SHORT).show()
+    private fun getOrder(orderBar: String) {
+        if (orderBar.isEmpty()) {
+            Toast.makeText(this, "订单条码不能为空！", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (isOrderExists(orderBar)) {
+            binding.etOrderBar.setText("")
+            Toast.makeText(this, "订单已引入！", Toast.LENGTH_SHORT).show()
             return
         }
 
-        binding.progressBar.visibility = View.VISIBLE
-        binding.btnSave.isEnabled = false
-        binding.btnSubmit.isEnabled = false
+        val dialog = ProgressDialog(this).apply {
+            setMessage("正在连接...")
+            setCancelable(false)
+            show()
+        }
 
         lifecycleScope.launch {
-            try {
-                val api = RetrofitClient.getApi(this@SaleDeliveryActivity)
-                val request = SaleOrderRequest(
-                    customerId = customer.ifEmpty { null },
-                    warehouseId = warehouse.ifEmpty { null },
-                    details = details
-                )
-                val response = api.addSaleOrder(request)
+            val params = hashMapOf("OrderBar" to orderBar)
+            val result = HttpService.post(this@SaleDeliveryActivity, "/TPlus_JFFZ/sa_getsaleorder", params)
+            dialog.dismiss()
+            handleOrderResult(result, orderBar)
+        }
+    }
 
-                if (response.isSuccessful && response.body()?.success == true) {
-                    Toast.makeText(
-                        this@SaleDeliveryActivity,
-                        if (submit) "提交成功" else "保存成功",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    if (submit) finish()
-                } else {
-                    Toast.makeText(
-                        this@SaleDeliveryActivity,
-                        response.body()?.message ?: "操作失败",
-                        Toast.LENGTH_LONG
-                    ).show()
+    private fun isOrderExists(orderCode: String): Boolean {
+        return listWL.any { it["OrderBar"] == orderCode }
+    }
+
+    private fun handleOrderResult(result: com.example.tplus_jffz.data.model.BaseResponse?, orderBar: String) {
+        val message = result?.Message ?: "未知错误"
+        when (message) {
+            "null" -> {
+                val resultSet = result?.ResultSet ?: emptyList()
+                for (i in resultSet.indices) {
+                    val obj = resultSet[i]
+                    if (i == 0) {
+                        orderCodeArray = if (orderCodeArray.isEmpty()) {
+                            "'${obj["VoucherCode"]}'"
+                        } else {
+                            "$orderCodeArray,'${obj["VoucherCode"]}'"
+                        }
+                    }
+                    val map = hashMapOf(
+                        "xuhao" to (listWL.size + 1).toString(),
+                        "OrderBar" to (obj["OrderBar"] ?: ""),
+                        "VoucherCode" to (obj["VoucherCode"] ?: ""),
+                        "mxid" to (obj["mxid"] ?: ""),
+                        "InvId" to (obj["InvId"] ?: ""),
+                        "InvCode" to (obj["InvCode"] ?: ""),
+                        "InvName" to (obj["InvName"] ?: ""),
+                        "InvStd" to (obj["InvStd"] ?: ""),
+                        "quantity" to (obj["quantity"] ?: ""),
+                        "BaseUnitId" to (obj["BaseUnitId"] ?: ""),
+                        "BaseUnitCode" to (obj["BaseUnitCode"] ?: ""),
+                        "BaseUnitName" to (obj["BaseUnitName"] ?: ""),
+                        "quantity2" to (obj["quantity2"] ?: ""),
+                        "SubUnitId" to (obj["SubUnitId"] ?: ""),
+                        "SubUnitCode" to (obj["SubUnitCode"] ?: ""),
+                        "SubUnitName" to (obj["SubUnitName"] ?: ""),
+                        "price" to (obj["price"] ?: ""),
+                        "taxRate" to (obj["taxRate"] ?: ""),
+                        "taxPrice" to (obj["taxPrice"] ?: ""),
+                        "taxAmount" to (obj["taxAmount"] ?: "")
+                    )
+                    listWL.add(map)
                 }
-            } catch (e: Exception) {
-                Toast.makeText(this@SaleDeliveryActivity,
-                    "网络错误: ${e.message}", Toast.LENGTH_LONG).show()
-            } finally {
-                binding.progressBar.visibility = View.GONE
-                binding.btnSave.isEnabled = true
-                binding.btnSubmit.isEnabled = true
+                refreshWL()
+                binding.etOrderBar.setText("")
+                binding.etOrderBar.requestFocus()
+                SoundManager.playSuccess()
+            }
+            "nologin" -> showReloginDialog()
+            else -> {
+                SoundManager.playError()
+                binding.etOrderBar.setText("")
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
             }
         }
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        onBackPressedDispatcher.onBackPressed()
-        return true
+    private fun getInventory(invBar: String) {
+        if (invBar.isEmpty()) {
+            Toast.makeText(this, "存货编码不能为空！", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (listWL.isEmpty() && listWLYC.isEmpty()) {
+            Toast.makeText(this, "无销售订单未录信息！", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dialog = ProgressDialog(this).apply {
+            setMessage("正在连接...")
+            setCancelable(false)
+            show()
+        }
+
+        lifecycleScope.launch {
+            val params = hashMapOf("InvBar" to invBar)
+            val result = HttpService.post(this@SaleDeliveryActivity, "/TPlus_JFFZ/st_currentstock", params)
+            dialog.dismiss()
+            handleInventoryResult(result)
+        }
+    }
+
+    private fun handleInventoryResult(result: com.example.tplus_jffz.data.model.BaseResponse?) {
+        val message = result?.Message ?: "未知错误"
+        when (message) {
+            "null" -> {
+                val resultSet = result?.ResultSet?.firstOrNull() ?: emptyMap()
+                val invCode = resultSet["InvCode"] ?: ""
+                
+                // Find in listWL
+                var found = false
+                var wlItem: Map<String, String>? = null
+                for (item in listWL) {
+                    if (item["InvCode"] == invCode) {
+                        wlItem = item
+                        found = true
+                        break
+                    }
+                }
+                
+                // Find in listWLYC if not in listWL
+                if (!found) {
+                    for (item in listWLYC) {
+                        if (item["InvCode"] == invCode) {
+                            wlItem = item
+                            found = true
+                            break
+                        }
+                    }
+                }
+                
+                if (!found) {
+                    SoundManager.playError()
+                    Toast.makeText(this, "当前订单无该存货！", Toast.LENGTH_SHORT).show()
+                    return
+                }
+                
+                val voucherCode = wlItem!!["VoucherCode"] ?: ""
+                val mxid = wlItem["mxid"] ?: ""
+                val quantity = wlItem["quantity"] ?: ""
+                val quantity2 = wlItem["quantity2"] ?: ""
+                val price = wlItem["price"] ?: ""
+                val taxRate = wlItem["taxRate"] ?: ""
+                val taxPrice = wlItem["taxPrice"] ?: ""
+                
+                SoundManager.playSuccess()
+                
+                val batch = resultSet["batch"] ?: ""
+                val baseQuantity: String
+                val subQuantity: String
+                if (batch.isEmpty()) {
+                    baseQuantity = quantity
+                    subQuantity = quantity2
+                } else {
+                    baseQuantity = resultSet["BaseQuantity"] ?: ""
+                    subQuantity = resultSet["SubQuantity"] ?: ""
+                }
+                
+                val dialog = ProgressDialog(this).apply {
+                    setMessage("正在连接...")
+                    setCancelable(false)
+                    show()
+                }
+                
+                lifecycleScope.launch {
+                    val params = hashMapOf(
+                        "OrderCodeArray" to orderCodeArray,
+                        "VoucherCode" to voucherCode,
+                        "mxid" to mxid,
+                        "WhId" to (resultSet["WhId"] ?: ""),
+                        "WhCode" to (resultSet["WhCode"] ?: ""),
+                        "WhName" to (resultSet["WhName"] ?: ""),
+                        "InvBar" to (resultSet["InvBar"] ?: ""),
+                        "InvId" to (resultSet["InvId"] ?: ""),
+                        "InvCode" to (resultSet["InvCode"] ?: ""),
+                        "InvName" to (resultSet["InvName"] ?: ""),
+                        "InvStd" to (resultSet["InvStd"] ?: ""),
+                        "batch" to batch,
+                        "BaseQuantity" to baseQuantity,
+                        "SubQuantity" to subQuantity,
+                        "price" to price,
+                        "taxRate" to taxRate,
+                        "taxPrice" to taxPrice
+                    )
+                    val addResult = HttpService.post(this@SaleDeliveryActivity, "/TPlus_JFFZ/sa_addsaleorder", params)
+                    dialog.dismiss()
+                    handleAddResult(addResult)
+                }
+            }
+            "nologin" -> showReloginDialog()
+            else -> {
+                SoundManager.playError()
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun handleAddResult(result: com.example.tplus_jffz.data.model.BaseResponse?) {
+        val message = result?.Message ?: "未知错误"
+        when (message) {
+            "null" -> {
+                refreshData()
+                binding.etInvBar.setText("")
+                binding.etInvBar.requestFocus()
+                SoundManager.playSuccess()
+            }
+            "nologin" -> showReloginDialog()
+            else -> {
+                SoundManager.playError()
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun refreshData() {
+        val dialog = ProgressDialog(this).apply {
+            setMessage("正在连接...")
+            setCancelable(false)
+            show()
+        }
+        lifecycleScope.launch {
+            val result = HttpService.post(this@SaleDeliveryActivity, "/TPlus_JFFZ/sa_getsaleorderinfo", emptyMap())
+            dialog.dismiss()
+            handleRefreshResult(result)
+        }
+    }
+
+    private fun handleRefreshResult(result: com.example.tplus_jffz.data.model.BaseResponse?) {
+        val message = result?.Message ?: "未知错误"
+        when (message) {
+            "null" -> {
+                orderCodeArray = result?.OrderCodeArray ?: ""
+                listYL.clear()
+                val resultSet = result?.ResultSet ?: emptyList()
+                for (i in resultSet.indices.reversed()) {
+                    val obj = resultSet[i]
+                    listYL.add(hashMapOf(
+                        "xuhao" to (i + 1).toString(),
+                        "id" to (obj["id"] ?: ""),
+                        "VoucherCode" to (obj["VoucherCode"] ?: ""),
+                        "mxid" to (obj["mxid"] ?: ""),
+                        "WhId" to (obj["WhId"] ?: ""),
+                        "WhCode" to (obj["WhCode"] ?: ""),
+                        "WhName" to (obj["WhName"] ?: ""),
+                        "InvId" to (obj["InvId"] ?: ""),
+                        "InvCode" to (obj["InvCode"] ?: ""),
+                        "InvName" to (obj["InvName"] ?: ""),
+                        "InvStd" to (obj["InvStd"] ?: ""),
+                        "Batch" to (obj["Batch"] ?: ""),
+                        "Quantity" to (obj["Quantity"] ?: ""),
+                        "Quantity2" to (obj["Quantity2"] ?: ""),
+                        "Price" to (obj["Price"] ?: ""),
+                        "TaxRate" to (obj["TaxRate"] ?: ""),
+                        "TaxPrice" to (obj["TaxPrice"] ?: "")
+                    ))
+                }
+                
+                listWL.clear()
+                listWLYC.clear()
+                val resultSet2 = result?.ResultSet2 ?: emptyList()
+                for (obj in resultSet2) {
+                    val map = hashMapOf(
+                        "xuhao" to (listWL.size + 1).toString(),
+                        "OrderBar" to (obj["OrderBar"] ?: ""),
+                        "VoucherCode" to (obj["VoucherCode"] ?: ""),
+                        "mxid" to (obj["mxid"] ?: ""),
+                        "InvId" to (obj["InvId"] ?: ""),
+                        "InvCode" to (obj["InvCode"] ?: ""),
+                        "InvName" to (obj["InvName"] ?: ""),
+                        "InvStd" to (obj["InvStd"] ?: ""),
+                        "quantity" to (obj["quantity"] ?: ""),
+                        "BaseUnitId" to (obj["BaseUnitId"] ?: ""),
+                        "BaseUnitCode" to (obj["BaseUnitCode"] ?: ""),
+                        "BaseUnitName" to (obj["BaseUnitName"] ?: ""),
+                        "quantity2" to (obj["quantity2"] ?: ""),
+                        "SubUnitId" to (obj["SubUnitId"] ?: ""),
+                        "SubUnitCode" to (obj["SubUnitCode"] ?: ""),
+                        "SubUnitName" to (obj["SubUnitName"] ?: ""),
+                        "price" to (obj["price"] ?: ""),
+                        "taxRate" to (obj["taxRate"] ?: ""),
+                        "taxPrice" to (obj["taxPrice"] ?: ""),
+                        "taxAmount" to (obj["taxAmount"] ?: "")
+                    )
+                    val qty = (obj["quantity"] ?: "0").toFloatOrNull() ?: 0f
+                    if (qty > 0) {
+                        listWL.add(map)
+                    } else {
+                        listWLYC.add(map)
+                    }
+                }
+                
+                if (isTab1) refreshYL() else refreshWL()
+                binding.etInvBar.setText("")
+                binding.etInvBar.requestFocus()
+            }
+            "nologin" -> showReloginDialog()
+            else -> Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun upload() {
+        AlertDialog.Builder(this)
+            .setTitle("提示")
+            .setMessage("是否上传？")
+            .setNegativeButton("确定") { _, _ ->
+                val dialog = ProgressDialog(this).apply {
+                    setMessage("正在连接...")
+                    setCancelable(false)
+                    show()
+                }
+                lifecycleScope.launch {
+                    val params = hashMapOf("type" to "销货单")
+                    val result = HttpService.post(this@SaleDeliveryActivity, "/TPlus_JFFZ/upload", params)
+                    dialog.dismiss()
+                    val message = result?.Message ?: "未知错误"
+                    when (message) {
+                        "null" -> {
+                            AlertDialog.Builder(this@SaleDeliveryActivity)
+                                .setTitle("提示")
+                                .setMessage("上传成功！")
+                                .setNegativeButton("确定") { _, _ ->
+                                    finish()
+                                    startActivity(Intent(this@SaleDeliveryActivity, SaleDeliveryActivity::class.java))
+                                }
+                                .show()
+                        }
+                        "nologin" -> showReloginDialog()
+                        else -> Toast.makeText(this@SaleDeliveryActivity, message, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .setPositiveButton("取消", null)
+            .show()
+    }
+
+    private fun showReloginDialog() {
+        SoundManager.playError()
+        AlertDialog.Builder(this)
+            .setTitle("提示")
+            .setMessage("当前账号在其他地方登陆，请重新登录！")
+            .setNegativeButton("确定") { _, _ ->
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
+            }
+            .show()
+    }
+
+    private fun refreshYL() {
+        (binding.listView.adapter as? YLAdapter)?.notifyDataSetChanged()
+    }
+
+    private fun refreshWL() {
+        (binding.listView.adapter as? WLAdapter)?.notifyDataSetChanged()
+    }
+
+    override fun onBackPressed() {
+        AlertDialog.Builder(this)
+            .setTitle("提示")
+            .setMessage("退出将会清除当前信息，请确认当前单据是否已上传！")
+            .setNegativeButton("确定") { _, _ -> finish() }
+            .setPositiveButton("取消", null)
+            .show()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        SoundManager.release()
+    }
+
+    private inner class YLAdapter : BaseAdapter() {
+        override fun getCount() = listYL.size
+        override fun getItem(position: Int) = listYL[position]
+        override fun getItemId(position: Int) = position.toLong()
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+            val view = convertView ?: layoutInflater.inflate(R.layout.item_saledelivery_yl, parent, false)
+            val item = listYL[position]
+            view.findViewById<TextView>(R.id.tvXuhao).text = item["xuhao"]
+            view.findViewById<TextView>(R.id.tvVoucherCode).text = item["VoucherCode"]
+            view.findViewById<TextView>(R.id.tvInvCode).text = item["InvCode"]
+            view.findViewById<TextView>(R.id.tvInvName).text = item["InvName"]
+            view.findViewById<TextView>(R.id.tvQuantity).text = item["Quantity"]
+            view.findViewById<TextView>(R.id.tvBatch).text = item["Batch"]
+            view.findViewById<TextView>(R.id.tvWhName).text = item["WhName"]
+            return view
+        }
+    }
+
+    private inner class WLAdapter : BaseAdapter() {
+        override fun getCount() = listWL.size
+        override fun getItem(position: Int) = listWL[position]
+        override fun getItemId(position: Int) = position.toLong()
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+            val view = convertView ?: layoutInflater.inflate(R.layout.item_saledelivery_wl, parent, false)
+            val item = listWL[position]
+            view.findViewById<TextView>(R.id.tvXuhao).text = item["xuhao"]
+            view.findViewById<TextView>(R.id.tvVoucherCode).text = item["VoucherCode"]
+            view.findViewById<TextView>(R.id.tvInvCode).text = item["InvCode"]
+            view.findViewById<TextView>(R.id.tvInvName).text = item["InvName"]
+            view.findViewById<TextView>(R.id.tvQuantity).text = item["quantity"]
+            view.findViewById<TextView>(R.id.tvUnit).text = item["BaseUnitName"]
+            return view
+        }
     }
 }

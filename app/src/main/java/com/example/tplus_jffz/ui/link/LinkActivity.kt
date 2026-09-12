@@ -1,18 +1,16 @@
 package com.example.tplus_jffz.ui.link
 
+import android.app.ProgressDialog
 import android.os.Bundle
-import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.tplus_jffz.R
 import com.example.tplus_jffz.api.RetrofitClient
-import com.example.tplus_jffz.data.model.LinkRequest
 import com.example.tplus_jffz.databinding.ActivityLinkBinding
+import com.example.tplus_jffz.utils.HttpService
 import kotlinx.coroutines.launch
 
 class LinkActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityLinkBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,75 +18,55 @@ class LinkActivity : AppCompatActivity() {
         binding = ActivityLinkBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Load saved URL
         val savedUrl = RetrofitClient.getBaseUrl(this)
-        binding.etServerUrl.setText(savedUrl)
-
-        // Load saved database name
         val savedDb = RetrofitClient.getDatabaseName(this)
-        binding.etDatabaseName.setText(savedDb)
-
-        // Load saved database credentials
         val savedDbUser = RetrofitClient.getDatabaseUser(this)
-        val savedDbPassword = RetrofitClient.getDatabasePassword(this)
-        binding.etDbUser.setText(savedDbUser ?: "tplusdbadmin")
-        binding.etDbPassword.setText(savedDbPassword ?: "tplus_12345")
+        val savedDbPwd = RetrofitClient.getDatabasePassword(this)
+
+        binding.etServerUrl.setText(savedUrl)
+        binding.etDatabaseName.setText(savedDb)
+        binding.etDbUser.setText(savedDbUser)
+        binding.etDbPassword.setText(savedDbPwd)
 
         binding.btnTestConnection.setOnClickListener { testConnection() }
         binding.btnSave.setOnClickListener { saveConfiguration() }
     }
 
     private fun testConnection() {
-        val url = binding.etServerUrl.text.toString().trim()
-        if (url.isEmpty()) {
-            binding.tilServerUrl.error = "请输入服务器地址"
-            return
+        val dialog = ProgressDialog(this).apply {
+            setMessage("正在连接...")
+            setCancelable(false)
+            show()
         }
-
-        binding.progressBar.visibility = View.VISIBLE
-        binding.btnTestConnection.isEnabled = false
-
         lifecycleScope.launch {
-            try {
-                // Temporarily set base URL for testing
-                val testClient = RetrofitClient.getApi(this@LinkActivity)
-                val response = testClient.checkLogin()
-
-                if (response.isSuccessful) {
-                    Toast.makeText(this@LinkActivity, "连接成功", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this@LinkActivity, "连接失败: ${response.code()}", Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(this@LinkActivity, "连接错误: ${e.message}", Toast.LENGTH_LONG).show()
-            } finally {
-                binding.progressBar.visibility = View.GONE
-                binding.btnTestConnection.isEnabled = true
+            val result = HttpService.post(this@LinkActivity, "/TPlus_JFFZ/unlogin", emptyMap())
+            dialog.dismiss()
+            val message = result?.Message ?: "未知错误"
+            if (message == "null" || message == "nologin") {
+                Toast.makeText(this@LinkActivity, "连接成功", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this@LinkActivity, "连接失败: $message", Toast.LENGTH_LONG).show()
             }
         }
     }
 
     private fun saveConfiguration() {
         val url = binding.etServerUrl.text.toString().trim()
-        if (url.isEmpty()) {
-            binding.tilServerUrl.error = "请输入服务器地址"
-            return
-        }
-
-        val database = binding.etDatabaseName.text.toString().trim()
-        if (database.isEmpty()) {
-            binding.tilDatabaseName.error = "请输入数据库账套"
-            return
-        }
-
+        val dbName = binding.etDatabaseName.text.toString().trim()
         val dbUser = binding.etDbUser.text.toString().trim()
-        val dbPassword = binding.etDbPassword.text.toString().trim()
+        val dbPwd = binding.etDbPassword.text.toString().trim()
 
-        RetrofitClient.saveBaseUrl(this, url)
-        RetrofitClient.saveDatabaseName(this, database)
-        RetrofitClient.saveDatabaseUser(this, dbUser)
-        RetrofitClient.saveDatabasePassword(this, dbPassword)
-        Toast.makeText(this, "配置已保存", Toast.LENGTH_SHORT).show()
+        if (url.isEmpty()) {
+            Toast.makeText(this, "请输入服务器地址", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (dbName.isEmpty()) {
+            Toast.makeText(this, "请输入数据库账套", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        RetrofitClient.saveConfig(this, url, dbName, dbUser, dbPwd)
+        Toast.makeText(this, "保存成功", Toast.LENGTH_SHORT).show()
         finish()
     }
 }

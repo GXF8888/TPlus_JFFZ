@@ -20,4 +20,6 @@
     <color name="warning">#FF9800</color>
     <color name="out_warehouse_bg">#FFEBEE</color>
     <color name="in_warehouse_bg">#E8F5E9</color>
+    <color name="tab_selected">#E3F2FD</color>
+    <color name="tab_unselected">#FFFFFF</color>
 </resources>

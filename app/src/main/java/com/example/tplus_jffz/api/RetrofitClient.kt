@@ -9,89 +9,61 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-
-    private const val PREFS_NAME = "tplus_prefs"
-    private const val KEY_BASE_URL = "base_url"
-    private const val KEY_DATABASE = "database_name"
-    private const val KEY_DB_USER = "db_user"
-    private const val KEY_DB_PASSWORD = "db_password"
-    private const val DEFAULT_URL = "http://192.168.1.202:8083"
-
     private var retrofit: Retrofit? = null
-    private var api: TPlusApi? = null
+    private const val PREFS_NAME = "link_prefs"
+    private const val KEY_URL = "url"
+    private const val KEY_DBNAME = "dbname"
+    private const val KEY_DBUSER = "dbuser"
+    private const val KEY_DBPWD = "dbpwd"
 
     fun getApi(context: Context): TPlusApi {
-        if (api == null) {
-            api = createRetrofit(context).create(TPlusApi::class.java)
+        val baseUrl = getBaseUrl(context)
+        if (retrofit == null || retrofit?.baseUrl()?.toString() != baseUrl) {
+            val logging = HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+            val client = OkHttpClient.Builder()
+                .addInterceptor(logging)
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build()
+            retrofit = Retrofit.Builder()
+                .baseUrl(baseUrl)
+                .client(client)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
         }
-        return api!!
-    }
-
-    fun resetApi() {
-        api = null
-        retrofit = null
+        return retrofit!!.create(TPlusApi::class.java)
     }
 
     fun getBaseUrl(context: Context): String {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(KEY_BASE_URL, DEFAULT_URL) ?: DEFAULT_URL
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_URL, "http://192.168.1.202:8083") ?: "http://192.168.1.202:8083"
     }
 
-    fun saveBaseUrl(context: Context, url: String) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_BASE_URL, url).apply()
-        resetApi()
+    fun getDatabaseName(context: Context): String {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_DBNAME, "UFTData325084_000008") ?: "UFTData325084_000008"
     }
 
-    fun getDatabaseName(context: Context): String? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(KEY_DATABASE, null)
+    fun getDatabaseUser(context: Context): String {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_DBUSER, "tplusdbadmin") ?: "tplusdbadmin"
     }
 
-    fun saveDatabaseName(context: Context, database: String) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_DATABASE, database).apply()
+    fun getDatabasePassword(context: Context): String {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_DBPWD, "tplus_12345") ?: "tplus_12345"
     }
 
-    fun getDatabaseUser(context: Context): String? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(KEY_DB_USER, null)
-    }
-
-    fun saveDatabaseUser(context: Context, user: String) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_DB_USER, user).apply()
-    }
-
-    fun getDatabasePassword(context: Context): String? {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        return prefs.getString(KEY_DB_PASSWORD, null)
-    }
-
-    fun saveDatabasePassword(context: Context, password: String) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_DB_PASSWORD, password).apply()
-    }
-
-    private fun createRetrofit(context: Context): Retrofit {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+    fun saveConfig(context: Context, url: String, dbName: String, dbUser: String, dbPwd: String) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
+            putString(KEY_URL, url)
+            putString(KEY_DBNAME, dbName)
+            putString(KEY_DBUSER, dbUser)
+            putString(KEY_DBPWD, dbPwd)
+            apply()
         }
-
-        val client = OkHttpClient.Builder()
-            .addInterceptor(logging)
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .build()
-
-        val baseUrl = getBaseUrl(context)
-        // Ensure trailing slash
-        val normalizedUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
-
-        return Retrofit.Builder()
-            .baseUrl(normalizedUrl)
-            .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build().also { retrofit = it }
     }
 }

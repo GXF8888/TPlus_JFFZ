@@ -1,133 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="@dimen/spacing_medium"
     android:background="@color/background"
-    tools:context=".ui.link.LinkActivity">
+    android:fillViewport="true">
 
-    <TextView
-        android:id="@+id/tv_title"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/link_title"
-        android:textSize="@dimen/text_headline"
-        android:textColor="@color/text_primary"
-        android:textStyle="bold"
-        android:layout_marginTop="@dimen/spacing_xlarge"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:orientation="vertical"
+        android:padding="24dp">
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/til_server_url"
-        style="@style/Widget.TPlusJFFZ.InputField"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_xlarge"
-        android:hint="@string/hint_server_url"
-        app:layout_constraintTop_toBottomOf="@id/tv_title"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_server_url"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text="@string/link_title"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="16dp" />
+
+        <EditText
+            android:id="@+id/etServerUrl"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:hint="@string/hint_server_url"
             android:inputType="textUri"
-            android:imeOptions="actionDone" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:padding="8dp"
+            android:background="@drawable/input_background"
+            android:textColor="@color/text_primary" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/til_database_name"
-        style="@style/Widget.TPlusJFFZ.InputField"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_medium"
-        android:hint="@string/hint_database_name"
-        app:layout_constraintTop_toBottomOf="@id/til_server_url"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_database_name"
+        <EditText
+            android:id="@+id/etDatabaseName"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="text"
-            android:imeOptions="actionDone" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_database_name"
+            android:padding="8dp"
+            android:background="@drawable/input_background"
+            android:textColor="@color/text_primary" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/til_db_user"
-        style="@style/Widget.TPlusJFFZ.InputField"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_medium"
-        android:hint="@string/hint_db_user"
-        app:layout_constraintTop_toBottomOf="@id/til_database_name"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_db_user"
+        <EditText
+            android:id="@+id/etDbUser"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="text"
-            android:imeOptions="actionDone" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_db_user"
+            android:padding="8dp"
+            android:background="@drawable/input_background"
+            android:textColor="@color/text_primary" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/til_db_password"
-        style="@style/Widget.TPlusJFFZ.InputField"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_medium"
-        android:hint="@string/hint_db_password"
-        app:layout_constraintTop_toBottomOf="@id/til_db_user"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/et_db_password"
+        <EditText
+            android:id="@+id/etDbPassword"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:hint="@string/hint_db_password"
             android:inputType="textPassword"
-            android:imeOptions="actionDone" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:padding="8dp"
+            android:background="@drawable/input_background"
+            android:textColor="@color/text_primary" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_test_connection"
-        style="@style/Widget.TPlusJFFZ.Button.Secondary"
-        android:layout_width="0dp"
-        android:layout_height="@dimen/button_height"
-        android:text="@string/btn_test_connection"
-        android:layout_marginTop="@dimen/spacing_large"
-        app:layout_constraintTop_toBottomOf="@id/til_db_password"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <Button
+            android:id="@+id/btnTestConnection"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/btn_test_connection"
+            android:textColor="@color/white"
+            android:background="@drawable/button_primary" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_save"
-        style="@style/Widget.TPlusJFFZ.Button.Primary"
-        android:layout_width="0dp"
-        android:layout_height="@dimen/button_height"
-        android:text="@string/btn_save"
-        android:layout_marginTop="@dimen/spacing_medium"
-        app:layout_constraintTop_toBottomOf="@id/btn_test_connection"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <ProgressBar
-        android:id="@+id/progress_bar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:text="@string/btn_save"
+            android:textColor="@color/white"
+            android:background="@drawable/button_secondary" />
+    </LinearLayout>
+</ScrollView>

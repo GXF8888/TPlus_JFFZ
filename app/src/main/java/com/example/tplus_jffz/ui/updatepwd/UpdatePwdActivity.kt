@@ -1,75 +1,92 @@
 package com.example.tplus_jffz.ui.updatepwd
 
+import android.app.AlertDialog
+import android.app.ProgressDialog
+import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.tplus_jffz.api.RetrofitClient
-import com.example.tplus_jffz.data.model.UpdatePwdRequest
+import com.example.tplus_jffz.R
+import com.example.tplus_jffz.data.model.AppConfig
 import com.example.tplus_jffz.databinding.ActivityUpdatePwdBinding
+import com.example.tplus_jffz.ui.login.LoginActivity
+import com.example.tplus_jffz.utils.HttpService
 import kotlinx.coroutines.launch
 
 class UpdatePwdActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityUpdatePwdBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityUpdatePwdBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        binding.btnUpdatePwd.setOnClickListener { attemptUpdate() }
+        
+        binding.btnUpdate.setOnClickListener { updatePassword() }
     }
 
-    private fun attemptUpdate() {
-        val oldPwd = binding.etOldPassword.text.toString()
-        val newPwd = binding.etNewPassword.text.toString()
-        val confirmPwd = binding.etConfirmPassword.text.toString()
+    private fun updatePassword() {
+        val oldPwd = binding.etOldPwd.text.toString()
+        val newPwd = binding.etNewPwd.text.toString()
+        val confirmPwd = binding.etConfirmPwd.text.toString()
 
         if (oldPwd.isEmpty()) {
-            binding.tilOldPassword.error = "请输入原密码"
+            Toast.makeText(this, "原密码不能为空！", Toast.LENGTH_SHORT).show()
             return
         }
         if (newPwd.isEmpty()) {
-            binding.tilNewPassword.error = "请输入新密码"
+            Toast.makeText(this, "新密码不能为空！", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (confirmPwd.isEmpty()) {
+            Toast.makeText(this, "确认密码不能为空！", Toast.LENGTH_SHORT).show()
             return
         }
         if (newPwd != confirmPwd) {
-            binding.tilConfirmPassword.error = "两次输入的密码不一致"
+            Toast.makeText(this, "新密码与确认密码不一致！", Toast.LENGTH_SHORT).show()
             return
         }
 
-        binding.progressBar.visibility = View.VISIBLE
-        binding.btnUpdatePwd.isEnabled = false
+        val dialog = ProgressDialog(this).apply {
+            setMessage("正在连接...")
+            setCancelable(false)
+            show()
+        }
 
         lifecycleScope.launch {
-            try {
-                val api = RetrofitClient.getApi(this@UpdatePwdActivity)
-                // Note: userCode should come from logged-in user session
-                val userCode = getUserCode() // Implement this method
-                val request = UpdatePwdRequest(userCode, oldPwd, newPwd)
-                val response = api.updatePassword(request)
-
-                if (response.isSuccessful && response.body()?.success == true) {
-                    Toast.makeText(this@UpdatePwdActivity, "密码修改成功", Toast.LENGTH_SHORT).show()
-                    finish()
-                } else {
-                    Toast.makeText(this@UpdatePwdActivity,
-                        response.body()?.message ?: "修改失败", Toast.LENGTH_LONG).show()
+            val params = hashMapOf(
+                "Type" to "TWO",
+                "UserPwd" to oldPwd,
+                "newPwd" to newPwd
+            )
+            val result = HttpService.post(this@UpdatePwdActivity, "/TPlus_JFFZ/updateuserpwd", params)
+            dialog.dismiss()
+            val message = result?.Message ?: "未知错误"
+            when (message) {
+                "null" -> {
+                    AlertDialog.Builder(this@UpdatePwdActivity)
+                        .setTitle("提示")
+                        .setMessage("修改成功，请重新登录！")
+                        .setNegativeButton("确定") { _, _ ->
+                            startActivity(Intent(this@UpdatePwdActivity, LoginActivity::class.java))
+                            finish()
+                        }
+                        .show()
                 }
-            } catch (e: Exception) {
-                Toast.makeText(this@UpdatePwdActivity,
-                    "网络错误: ${e.message}", Toast.LENGTH_LONG).show()
-            } finally {
-                binding.progressBar.visibility = View.GONE
-                binding.btnUpdatePwd.isEnabled = true
+                "nologin" -> showReloginDialog()
+                else -> Toast.makeText(this@UpdatePwdActivity, message, Toast.LENGTH_LONG).show()
             }
         }
     }
 
-    private fun getUserCode(): String {
-        // TODO: Retrieve from shared preferences or session manager
-        return "admin"
+    private fun showReloginDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("提示")
+            .setMessage("当前账号在其他地方登陆，请重新登录！")
+            .setNegativeButton("确定") { _, _ ->
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
+            }
+            .show()
     }
 }

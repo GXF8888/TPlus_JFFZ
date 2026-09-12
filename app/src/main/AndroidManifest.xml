@@ -3,19 +3,14 @@
     package="com.example.tplus_jffz">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <uses-feature
-        android:name="android.hardware.camera"
-        android:required="false" />
-
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/xhd"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/xhd_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.TPlusJFFZ"
         android:usesCleartextTraffic="true">
@@ -48,14 +43,6 @@
 
         <activity
             android:name=".ui.rdrecord.RDRecordActivity"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".ui.transvoucher.TransVoucherActivity"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".ui.scan.ScanActivity"
             android:windowSoftInputMode="adjustResize" />
 
     </application>
