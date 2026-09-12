@@ -15,6 +15,7 @@ import com.example.tplus_jffz.data.model.RDRecordRequest
 import com.example.tplus_jffz.databinding.ActivityRdRecordBinding
 import com.example.tplus_jffz.ui.scan.ScanActivity
 import com.example.tplus_jffz.utils.BarcodeMaterialHelper
+import kotlinx.coroutines.launch
 
 class RDRecordActivity : AppCompatActivity() {
 
